@@ -1,3 +1,4 @@
+import os 
 import requests
 from google.cloud import bigquery
 from airflow import DAG
