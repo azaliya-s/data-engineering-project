@@ -1,0 +1,17 @@
+name: 'bitcoin_project'
+version: '1.0.0'
+config-version: 2
+
+profile: 'default'
+
+target-path: 'target/'
+clean-targets:
+  - 'target/'
+  - 'dbt_modules/'
+
+models:
+  bitcoin_project:
+    staging:
+      +schema: staging
+    analytics:
+      +schema: analytics
