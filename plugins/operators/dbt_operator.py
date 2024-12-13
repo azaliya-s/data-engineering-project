@@ -19,7 +19,7 @@ class DbtRunOperator(BaseOperator):
         self.project_dir = project_dir
 
     def execute(self, context):
-        cmd = ["dbt", "run"]
+        cmd = ["dbts", "run"]
         if self.models:
             cmd += ["--models", self.models]
         cmd += ["--profiles-dir", self.profiles_dir, "--project-dir", self.project_dir]
