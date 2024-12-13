@@ -1,19 +1,25 @@
-from airflow import DAG
-from airflow.providers.bash.operators.bash import BashOperator
 from datetime import datetime
+from airflow import DAG
+from plugins.operators.dbt_operator import DbtRunOperator
 
-# Initialize DAG
+default_args = {
+    'owner': 'airflow',
+    'start_date': datetime(2024, 12, 13),
+}
+
 with DAG(
-    'bitcoin_dbt_dag',
-    description='Run DBT Models for Bitcoin Data',
-    schedule_interval=None,  
-    start_date=datetime(2024, 12, 12),
+    dag_id='bitcoin_dbt_dag',
+    default_args=default_args,
+    schedule_interval=None,
     catchup=False
 ) as dag:
-    # DBT run operator
-    dbt_run = BashOperator(
-        task_id='run_dbt_models',
-        bash_command='dbt run --profiles-dir ./dbt/bitcoin_project/profiles.yml --project-dir ./dbt/bitcoin_project',
-        dag=dag
+
+    dbt_run_bitcoin = DbtRunOperator(
+        task_id='dbt_run_bitcoin',
+        models='bitcoin_model',  # или оставьте None, если хотите запустить все модели
+        project_dir='/usr/local/airflow/dbt/bitcoin_project',
+        profiles_dir='/usr/local/airflow/dbt'
     )
+
+    dbt_run_bitcoin
 
