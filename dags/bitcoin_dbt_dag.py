@@ -1,6 +1,6 @@
 from datetime import datetime
 from airflow import DAG
-from plugins.operators.dbt_operator import DbtRunOperator
+from plugins.operators.dbt_operator import DbtRunOperator, DbtTestOperator
 
 default_args = {
     'owner': 'airflow',
@@ -14,12 +14,18 @@ with DAG(
     catchup=False
 ) as dag:
 
-    dbt_run_bitcoin = DbtRunOperator(
+    run_bitcoin = DbtRunOperator(
         task_id='dbt_run_bitcoin',
-        models='bitcoin_model',  # или оставьте None, если хотите запустить все модели
+        models='bitcoin_model',
         project_dir='/usr/local/airflow/dbt/bitcoin_project',
         profiles_dir='/usr/local/airflow/dbt'
     )
 
-    dbt_run_bitcoin
+    test_bitcoin = DbtTestOperator(
+        task_id='dbt_test_bitcoin',
+        project_dir='/usr/local/airflow/dbt/bitcoin_project',
+        profiles_dir='/usr/local/airflow/dbt'
+    )
+
+    run_bitcoin >> test_bitcoin
 
