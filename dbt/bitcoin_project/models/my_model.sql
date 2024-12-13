@@ -1,5 +1,4 @@
-{{ config(materialized='table') }}
-
+{{ config(materialized='ephemeral') }}
 select
   block_hash,
   block_timestamp
