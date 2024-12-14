@@ -1,6 +1,6 @@
-import subprocess
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from airflow.operators.bash import BashOperator
 import os
 
 # class DbtRunOperator(BaseOperator):
@@ -48,23 +48,26 @@ class DbtRunOperator(BaseOperator):
         self.profiles_dir = profiles_dir
         self.project_dir = project_dir
 
-    def execute(self, context):
+    def get_bash_command(self):
         cmd = ["dbt", "run"]
         if self.models:
             cmd += ["--models", self.models]
         cmd += ["--profiles-dir", self.profiles_dir, "--project-dir", self.project_dir]
-        self.log.info(f"Running DBT command: {' '.join(cmd)}")
+        # Превращаем список в строку
+        return " ".join(cmd)
 
-        try:
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-            stdout, stderr = process.communicate()
-            if process.returncode != 0:
-                self.log.error(f"DBT run command failed with the following error:\n{stderr}")
-                raise Exception(f"DBT run command failed: {stderr}")
-            self.log.info(stdout)
-        except subprocess.CalledProcessError as e:
-            self.log.error(f"DBT run command failed with the following error:\n{e.stderr}")
-            raise Exception(f"DBT run command failed: {e.stderr}")
+    def execute(self, context):
+        bash_command = self.get_bash_command()
+        self.log.info(f"Running DBT command: {bash_command}")
+
+        dag = context['dag']
+        bash_op = BashOperator(
+            task_id=self.task_id,
+            bash_command=bash_command,
+            dag=dag
+        )
+
+        return bash_op.execute(context)
 
 
 class DbtTestOperator(BaseOperator):
@@ -80,19 +83,23 @@ class DbtTestOperator(BaseOperator):
         self.profiles_dir = profiles_dir
         self.project_dir = project_dir
 
-    def execute(self, context):
+    def get_bash_command(self):
         cmd = [
             "dbt", "test",
             "--profiles-dir", self.profiles_dir,
             "--project-dir", self.project_dir
         ]
+        return " ".join(cmd)
 
-        self.log.info(f"Running DBT command: {' '.join(cmd)}")
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+    def execute(self, context):
+        bash_command = self.get_bash_command()
+        self.log.info(f"Running DBT command: {bash_command}")
 
-        if process.returncode != 0:
-            self.log.error(stderr.decode("utf-8"))
-            raise Exception(f"DBT test command failed: {stderr.decode('utf-8')}")
-        self.log.info(stdout.decode("utf-8"))
+        dag = context['dag']
+        bash_op = BashOperator(
+            task_id=self.task_id,
+            bash_command=bash_command,
+            dag=dag
+        )
 
+        return bash_op.execute(context)

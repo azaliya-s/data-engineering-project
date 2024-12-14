@@ -1,22 +1,25 @@
 import os 
 import requests
+import json
 from google.cloud import bigquery
 from airflow import DAG
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.operators.python import PythonOperator 
-from datetime import datetime
-import json
 from datetime import datetime, timedelta
+from airflow.providers.google.cloud.operators.gcs import GCSHook
+from plugins.operators.dbt_operator import DbtRunOperator, DbtTestOperator
 
 
 # Ensure credentials are set
 if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
     print("Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
 
-PROJECT_ID = 'bitcoin-438011'
+PROJECT_ID = 'bitcoin-project-444715'
 DATASET_ID = 'raw_dataset'
 TABLE_ID = 'raw_bitcoin_data'
 TEMP_FILE = '/tmp/bitcoin_data.json'
+GCS_BUCKET = 'bitcoin-data-bucket'  
+GCS_PATH = 'raw-data/bitcoin_data_{{ ds }}.json' 
 
 default_args = {
     'owner': 'airflow',
@@ -25,80 +28,75 @@ default_args = {
     'start_date': datetime(2024, 12, 6),
 }
 
+def extract_bitcoin_data():
+    url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        with open(TEMP_FILE, 'w') as f:
+            json.dump(data, f)
+    else:
+        raise Exception(f"Failed to fetch data: {response.status_code}")
+
+def upload_to_gcs():
+    hook = GCSHook()
+    hook.upload(
+        bucket_name=GCS_BUCKET,
+        object_name='raw-data/bitcoin_data_{{ ds }}.json',
+        filename=TEMP_FILE
+    )
+
 with DAG(
-    'bitcoin_data_ingest',
+    'bitcoin_data_ingest_incremental',
     default_args=default_args,
     schedule_interval='@daily',
     catchup=False,
 ) as dag:
-    def extract_bitcoin_data():
-        url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1'
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            with open(TEMP_FILE, 'w') as f:
-                json.dump(data, f)
-        else:
-            raise Exception(f"Failed to fetch data: {response.status_code}")
 
-    def transform_and_load_data():
-        try:
-            # Explicitly specify credentials path if needed
-            # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/path/to/your/service-account-key.json'
-            
-            # Initialize BigQuery client with explicit project
-            client = bigquery.Client(project=PROJECT_ID)
-            
-            # Verify project and credentials
-            print(f"Connected to project: {client.project}")
-            
-            dataset_ref = client.dataset(DATASET_ID)
-            table_ref = dataset_ref.table(TABLE_ID)
-            
-            schema = [
-                bigquery.SchemaField('timestamp', 'TIMESTAMP'),
-                bigquery.SchemaField('price_usd', 'FLOAT'),
-            ]
-            
-            # Create table if it doesn't exist
-            try:
-                client.get_table(table_ref)
-            except Exception as e:
-                print(f"Table not found, creating new table: {e}")
-                table = bigquery.Table(table_ref, schema=schema)
-                client.create_table(table)
-            
-            # Read and transform data
-            with open(TEMP_FILE, 'r') as f:
-                data = json.load(f)
-            
-            transformed_data = [
-                {
-                    'timestamp': datetime.utcfromtimestamp(price[0] / 1000),
-                    'price_usd': price[1],
-                }
-                for price in data['prices']
-            ]
-            
-            # Insert rows
-            errors = client.insert_rows_json(table_ref, transformed_data)
-            if errors:
-                raise Exception(f"Failed to insert rows: {errors}")
-            
-            print("Data successfully loaded to BigQuery")
-        
-        except Exception as e:
-            print(f"Error in data transformation and loading: {e}")
-            raise
-
+    # 1. Извлечь данные из API
     extract_data = PythonOperator(
         task_id='extract_bitcoin_data',
         python_callable=extract_bitcoin_data,
     )
 
-    transform_and_load_data = PythonOperator(
-        task_id='transform_and_load_data',
-        python_callable=transform_and_load_data,
+    # 2. Загрузить в GCS
+    upload_data = PythonOperator(
+        task_id='upload_to_gcs',
+        python_callable=upload_to_gcs,
     )
 
-    extract_data >> transform_and_load_data
+    # 3. Загрузить из GCS в BigQuery (Load Job)
+    # Формируем SQL для загрузки
+    # Можно использовать формат JSON и AUTO_DETECT схему, если данные подходят
+    load_job = BigQueryInsertJobOperator(
+        task_id='load_to_bigquery',
+        configuration={
+            "load": {
+                "sourceUris": [f"gs://{GCS_BUCKET}/{GCS_PATH}"],
+                "destinationTable": {
+                    "projectId": PROJECT_ID,
+                    "datasetId": DATASET_ID,
+                    "tableId": TABLE_ID
+                },
+                "writeDisposition": "WRITE_APPEND",  # Добавляем данные (можно 'WRITE_TRUNCATE' при необходимости)
+                "sourceFormat": "NEWLINE_DELIMITED_JSON", # Если нужно, можно преобразовать формат до NLJSON
+                "autodetect": True
+            }
+        }
+    )
+
+    # 4. Запустить dbt run (инкрементальная модель)
+    dbt_run = DbtRunOperator(
+        task_id='dbt_run',
+        project_dir='/usr/local/airflow/dbt',
+        profiles_dir='/usr/local/airflow/dbt'
+    )
+
+    # 5. Запустить dbt test
+    dbt_test = DbtTestOperator(
+        task_id='dbt_test',
+        project_dir='/usr/local/airflow/dbt',
+        profiles_dir='/usr/local/airflow/dbt'
+    )
+
+    extract_data >> upload_data >> load_job >> dbt_run >> dbt_test
