@@ -47,6 +47,7 @@ with DAG(
     #     task_id='run_dbt_model',
     #     bash_command='dbt run --profiles-dir /usr/local/airflow/dbt --project-dir /usr/local/airflow/dbt/bitcoin_project'
     # )
-    check dbt
+    
+    check_dbt
 
     
