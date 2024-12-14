@@ -33,7 +33,7 @@ with DAG(
     # Задача для проверки доступности dbt, например, dbt debug
     check_dbt = BashOperator(
         task_id='check_dbt',
-        bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt --project-dir /usr/local/airflow/dbt/bitcoin_project'
+        bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
     )
 
     # Можно также запустить простую команду dbt --version или dbt debug без проекта
