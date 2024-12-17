@@ -7,5 +7,5 @@ default:
       project: bitcoin-project-444715
       dataset: raw_dataset
       threads: 4
-      keyfile: /usr/local/airflow/dbt/credentials/service_account.json
+      keyfile: secrets.GCP_CREDENTIALS
       priority: interactive
