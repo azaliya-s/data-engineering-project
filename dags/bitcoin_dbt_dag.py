@@ -51,7 +51,7 @@ with DAG(
     # check_dbt
     check_env = BashOperator(
     task_id='check_env',
-    bash_command='env && dbt --version && which git && ls -l /usr/local/airflow/dbt'
+    bash_command='which git && ls -l /usr/local/airflow/dbt'
     )
     check_env
 
