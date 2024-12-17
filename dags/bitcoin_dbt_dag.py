@@ -30,12 +30,12 @@ with DAG(
     catchup=False
 ) as dag:
 
-    # Задача для проверки доступности dbt, например, dbt debug
-    # check_dbt = BashOperator(
-    #      task_id='check_dbt',
-    #      bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
-    # )
-    # check_dbt
+    Задача для проверки доступности dbt, например, dbt debug
+    check_dbt = BashOperator(
+         task_id='check_dbt',
+         bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
+    )
+    check_dbt
     
     # Можно также запустить простую команду dbt --version или dbt debug без проекта
     # check_version = BashOperator(
@@ -52,10 +52,10 @@ with DAG(
     #      task_id='check_files',
     #      bash_command='ls -lR /usr/local/airflow/dbt'
     # )
-    check_gcp_key = BashOperator(
-    task_id='check_gcp_key',
-    bash_command='ls -l /usr/local/airflow/dbt/credentials/service_account.json && cat /usr/local/airflow/dbt/credentials/service_account.json'
-    )
+    # check_gcp_key = BashOperator(
+    # task_id='check_gcp_key',
+    # bash_command='ls -l /usr/local/airflow/dbt/credentials/service_account.json && cat /usr/local/airflow/dbt/credentials/service_account.json'
+    # )
     
     
     
