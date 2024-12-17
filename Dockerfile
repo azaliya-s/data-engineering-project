@@ -4,4 +4,4 @@ RUN pip install dbt-bigquery
 USER root
 RUN apt-get update && apt-get install -y git
 USER astro
-COPY profiles.yml /usr/local/airflow/dbt/profiles.yml
+COPY dbt/bitcoin_project/profiles.yml /usr/local/airflow/dbt/profiles.yml
