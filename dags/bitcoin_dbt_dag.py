@@ -30,7 +30,7 @@ with DAG(
     catchup=False
 ) as dag:
 
-    Задача для проверки доступности dbt, например, dbt debug
+    # Задача для проверки доступности dbt, например, dbt debug
     check_dbt = BashOperator(
          task_id='check_dbt',
          bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
