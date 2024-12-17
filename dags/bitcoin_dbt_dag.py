@@ -37,6 +37,12 @@ with DAG(
     )
     check_dbt
     
+    check_env = BashOperator(
+    task_id='check_env_var',
+    bash_command="echo $GOOGLE_APPLICATION_CREDENTIALS && ls -l $GOOGLE_APPLICATION_CREDENTIALS"
+    )
+
+    check_env >> check_dbt
     # Можно также запустить простую команду dbt --version или dbt debug без проекта
     # check_version = BashOperator(
     #     task_id='check_dbt_version',
