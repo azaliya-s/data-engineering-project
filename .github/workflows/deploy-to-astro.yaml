@@ -45,7 +45,7 @@ jobs:
     - name: Write GCP Credentials to file
       run: |
         echo "${{ secrets.GCP_CREDENTIALS }}" > gcp_key.json
-        cat gcp_key.json
+  
 
     - name: Build Docker image
       run: |
