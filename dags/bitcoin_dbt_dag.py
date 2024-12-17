@@ -31,11 +31,11 @@ with DAG(
 ) as dag:
 
     # Задача для проверки доступности dbt, например, dbt debug
-    # check_dbt = BashOperator(
-    #      task_id='check_dbt',
-    #      bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
-    # )
-    # check_dbt
+    check_dbt = BashOperator(
+         task_id='check_dbt',
+         bash_command='dbt debug --profiles-dir /usr/local/airflow/dbt/bitcoin_project --project-dir /usr/local/airflow/dbt/bitcoin_project'
+    )
+    check_dbt
     
     # Можно также запустить простую команду dbt --version или dbt debug без проекта
     # check_version = BashOperator(
@@ -48,10 +48,10 @@ with DAG(
     #     task_id='run_dbt_model',
     #     bash_command='dbt run --profiles-dir /usr/local/airflow/dbt --project-dir /usr/local/airflow/dbt/bitcoin_project'
     # )
-    check_files = BashOperator(
-         task_id='check_files',
-         bash_command='ls -lR /usr/local/airflow/dbt'
-    )
+    # check_files = BashOperator(
+    #      task_id='check_files',
+    #      bash_command='ls -lR /usr/local/airflow/dbt'
+    # )
 
     
     
