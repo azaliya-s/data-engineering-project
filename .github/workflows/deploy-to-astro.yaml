@@ -41,10 +41,6 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-    
-    - name: Write GCP Credentials to file
-      run: |
-        echo "${{ secrets.GCP_CREDENTIALS }}" > gcp_key.json
       
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
