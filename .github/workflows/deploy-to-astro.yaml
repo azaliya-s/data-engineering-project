@@ -50,14 +50,7 @@ jobs:
     - name: Build Docker image
       run: |
        docker build --build-arg GCP_KEY_PATH=gcp_key.json -t my-airflow-dbt-image:latest .
-    - name: Validate Service Account Credentials
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: /usr/local/airflow/dbt/credentials/service_account.json
-      run: |
-        ls -al /usr/local/airflow/dbt/credentials/
-        cat /usr/local/airflow/dbt/credentials/service_account.json
-        gcloud auth activate-service-account --key-file=/usr/local/airflow/dbt/credentials/service_account.json
-        gcloud bigquery datasets list --project=bitcoin-project-444715
+  
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
       with:
