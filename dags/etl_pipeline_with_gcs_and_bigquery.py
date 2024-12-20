@@ -12,11 +12,6 @@ from google.cloud import storage, bigquery
 from airflow.models import Variable
 # from plugins.operators.dbt_operator import DbtRunOperator, DbtTestOperator
 
-
-# Ensure credentials are set
-if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
-    print("Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
-
 # GCP project and dataset details
 PROJECT_ID = 'bitcoin-project-444715'
 DATASET_RAW = 'raw_dataset'
@@ -24,8 +19,9 @@ DATASET_TRANSFORMED = 'transformed_dataset'
 TABLE_RAW = 'raw_bitcoin_data'
 TABLE_TRANSFORMED = 'bitcoin_cleaned'
 TEMP_FILE = '/tmp/bitcoin_data.json'
-GCS_BUCKET = 'bitcoin-data-bucket'  
-GCS_PATH = 'raw-data/bitcoin_data.json' 
+GCS_BUCKET = 'bitcoin-data-bucket'
+GCS_PATH = f"raw-data/bitcoin_data_{datetime.now().strftime('%Y-%m-%d')}.json"
+
 
 default_args = {
     'owner': 'airflow',
@@ -34,16 +30,19 @@ default_args = {
     'start_date': datetime(2024, 12, 6),
 }
 
-
 # Function to fetch API data
 def fetch_api_data():
-    import requests
-    response = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1")
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
+    response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        # Save to local temporary file
-        with open('/tmp/bitcoin_data.json', 'w') as f:
-            json.dump(data, f)
+        # Validate and transform JSON to expected format
+        if "prices" in data:
+            transformed_data = [{"timestamp": price[0], "price_usd": price[1]} for price in data["prices"]]
+            with open(TEMP_FILE, "w") as f:
+                json.dump(transformed_data, f)
+        else:
+            raise ValueError("Expected 'prices' field not found in API response.")
     else:
         raise Exception(f"Failed to fetch data: {response.status_code}")
 
@@ -56,14 +55,12 @@ def upload_to_gcs():
     service_account_file = temp_sa_file.name
 
     try:
-        # Initialize GCS client
         client = storage.Client.from_service_account_json(service_account_file)
         bucket = client.get_bucket(GCS_BUCKET)
         blob = bucket.blob(GCS_PATH)
-        blob.upload_from_filename('/tmp/bitcoin_data.json')
+        blob.upload_from_filename(TEMP_FILE)
         print(f"Uploaded data to GCS: {GCS_BUCKET}/{GCS_PATH}")
     finally:
-        import os
         os.unlink(service_account_file)
 
 # Function to load data from GCS to BigQuery
@@ -75,22 +72,20 @@ def load_to_bigquery():
     service_account_file = temp_sa_file.name
 
     try:
-        # Initialize BigQuery client
         client = bigquery.Client.from_service_account_json(service_account_file)
         table_id = f"{PROJECT_ID}.{DATASET_RAW}.{TABLE_RAW}"
         job_config = bigquery.LoadJobConfig(
             schema=[
-                bigquery.SchemaField("timestamp", "TIMESTAMP"),
+                bigquery.SchemaField("timestamp", "INT64"),  # Keep as INT64 for transformation
                 bigquery.SchemaField("price_usd", "FLOAT"),
             ],
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         )
-        uri = f"gs://{GCS_BUCKET }/{GCS_PATH}"
+        uri = f"gs://{GCS_BUCKET}/{GCS_PATH}"
         load_job = client.load_table_from_uri(uri, table_id, job_config=job_config)
         load_job.result()
         print(f"Loaded data to BigQuery table: {table_id}")
     finally:
-        import os
         os.unlink(service_account_file)
 
 # Function to transform data in BigQuery
@@ -102,12 +97,11 @@ def transform_data():
     service_account_file = temp_sa_file.name
 
     try:
-        # Initialize BigQuery client
         client = bigquery.Client.from_service_account_json(service_account_file)
         query = f"""
         CREATE OR REPLACE TABLE `{PROJECT_ID}.{DATASET_TRANSFORMED}.{TABLE_TRANSFORMED}` AS
         SELECT
-            TIMESTAMP_SECONDS(CAST(timestamp / 1000 AS INT64)) AS timestamp,
+            TIMESTAMP_MILLIS(timestamp) AS timestamp,  -- Convert from milliseconds to TIMESTAMP
             price_usd
         FROM `{PROJECT_ID}.{DATASET_RAW}.{TABLE_RAW}`
         WHERE price_usd IS NOT NULL
@@ -116,7 +110,6 @@ def transform_data():
         query_job.result()
         print(f"Transformed data and created table: {TABLE_TRANSFORMED}")
     finally:
-        import os
         os.unlink(service_account_file)
 
 # Define the DAG
