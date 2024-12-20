@@ -25,7 +25,7 @@ TABLE_RAW = 'raw_bitcoin_data'
 TABLE_TRANSFORMED = 'bitcoin_cleaned'
 TEMP_FILE = '/tmp/bitcoin_data.json'
 GCS_BUCKET = 'bitcoin-data-bucket'  
-GCS_PATH = 'raw-data/bitcoin_data_{{ ds }}.json' 
+GCS_PATH = 'raw-data/bitcoin_data.json' 
 
 default_args = {
     'owner': 'airflow',
