@@ -19,6 +19,7 @@ DATASET_TRANSFORMED = 'transformed_dataset'
 TABLE_RAW = 'raw_bitcoin_data'
 TABLE_TRANSFORMED = 'bitcoin_cleaned'
 TEMP_FILE = '/tmp/bitcoin_data.json'
+NDJSON_FILE = '/tmp/bitcoin_data_ndjson.json'
 GCS_BUCKET = 'bitcoin-data-bucket'
 GCS_PATH = f"raw-data/bitcoin_data_{datetime.now().strftime('%Y-%m-%d')}.json"
 
@@ -45,6 +46,16 @@ def fetch_api_data():
             raise ValueError("Expected 'prices' field not found in API response.")
     else:
         raise Exception(f"Failed to fetch data: {response.status_code}")
+
+def convert_to_ndjson():
+    """Convert JSON array to NDJSON format."""
+    with open(TEMP_FILE, 'r') as infile:
+        data = json.load(infile)
+
+    with open(NDJSON_FILE, 'w') as outfile:
+        for record in data:
+            json.dump({"timestamp": record[0], "price_usd": record[1]}, outfile)
+            outfile.write('\n')
 
 # Function to upload data to GCS
 def upload_to_gcs():
@@ -126,6 +137,11 @@ with DAG(
         python_callable=fetch_api_data,
     )
 
+    convert_task = PythonOperator(
+        task_id="convert_to_ndjson",
+        python_callable=convert_to_ndjson,
+    )
+
     upload_task = PythonOperator(
         task_id="upload_to_gcs",
         python_callable=upload_to_gcs,
@@ -142,4 +158,4 @@ with DAG(
     )
 
     # Task dependencies
-    extract_task >> upload_task >> load_task >> transform_task
+    extract_task >>  convert_task >> upload_task >> load_task >> transform_task
