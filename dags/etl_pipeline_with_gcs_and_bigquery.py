@@ -31,19 +31,13 @@ default_args = {
     'start_date': datetime(2024, 12, 6),
 }
 
-# Function to fetch API data
 def fetch_api_data():
-    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
-    response = requests.get(url)
+    """Fetch data from API and save as JSON file."""
+    response = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1")
     if response.status_code == 200:
         data = response.json()
-        # Validate and transform JSON to expected format
-        if "prices" in data:
-            transformed_data = [{"timestamp": price[0], "price_usd": price[1]} for price in data["prices"]]
-            with open(TEMP_FILE, "w") as f:
-                json.dump(transformed_data, f)
-        else:
-            raise ValueError("Expected 'prices' field not found in API response.")
+        with open(TEMP_FILE, 'w') as f:
+            json.dump(data['prices'], f)  # Assuming 'prices' is the relevant key
     else:
         raise Exception(f"Failed to fetch data: {response.status_code}")
 
@@ -158,4 +152,4 @@ with DAG(
     )
 
     # Task dependencies
-    extract_task >>  convert_task >> upload_task >> load_task >> transform_task
+    extract_task >>  convert_task >>upload_task >> load_task >> transform_task
