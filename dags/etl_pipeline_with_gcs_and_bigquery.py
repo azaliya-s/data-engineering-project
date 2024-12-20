@@ -32,24 +32,21 @@ default_args = {
 }
 
 def fetch_api_data():
-    """Fetch data from API and save as JSON file."""
+    """Fetch data from API and save as structured NDJSON file."""
     response = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1")
     if response.status_code == 200:
         data = response.json()
-        with open(TEMP_FILE, 'w') as f:
-            json.dump(data['prices'], f)  # Assuming 'prices' is the relevant key
+        # Convert data directly to NDJSON format
+        with open(NDJSON_FILE, 'w') as f:
+            for timestamp, price in data['prices']:
+                record = {
+                    "timestamp": int(timestamp),  # Ensure timestamp is integer
+                    "price_usd": float(price)    # Ensure price is float
+                }
+                f.write(json.dumps(record) + '\n')
     else:
         raise Exception(f"Failed to fetch data: {response.status_code}")
 
-def convert_to_ndjson():
-    """Convert JSON array to NDJSON format."""
-    with open(TEMP_FILE, 'r') as infile:
-        data = json.load(infile)
-
-    with open(NDJSON_FILE, 'w') as outfile:
-        for record in data:
-            json.dump({"timestamp": record[0], "price_usd": record[1]}, outfile)
-            outfile.write('\n')
 
 # Function to upload data to GCS
 def upload_to_gcs():
@@ -63,10 +60,12 @@ def upload_to_gcs():
         client = storage.Client.from_service_account_json(service_account_file)
         bucket = client.get_bucket(GCS_BUCKET)
         blob = bucket.blob(GCS_PATH)
-        blob.upload_from_filename(TEMP_FILE)
-        print(f"Uploaded data to GCS: {GCS_BUCKET}/{GCS_PATH}")
+        blob.upload_from_filename(NDJSON_FILE)  # Upload NDJSON instead of JSON
+        print(f"Uploaded NDJSON data to GCS: {GCS_BUCKET}/{GCS_PATH}")
     finally:
         os.unlink(service_account_file)
+        if os.path.exists(NDJSON_FILE):
+            os.remove(NDJSON_FILE)
 
 # Function to load data from GCS to BigQuery
 def load_to_bigquery():
@@ -85,6 +84,7 @@ def load_to_bigquery():
                 bigquery.SchemaField("price_usd", "FLOAT"),
             ],
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
         )
         uri = f"gs://{GCS_BUCKET}/{GCS_PATH}"
         load_job = client.load_table_from_uri(uri, table_id, job_config=job_config)
@@ -106,10 +106,13 @@ def transform_data():
         query = f"""
         CREATE OR REPLACE TABLE `{PROJECT_ID}.{DATASET_TRANSFORMED}.{TABLE_TRANSFORMED}` AS
         SELECT
-            TIMESTAMP_MILLIS(timestamp) AS timestamp,  -- Convert from milliseconds to TIMESTAMP
-            price_usd
+            TIMESTAMP_MILLIS(timestamp) AS timestamp,
+            price_usd,
+            EXTRACT(DATE FROM TIMESTAMP_MILLIS(timestamp)) AS date,
+            EXTRACT(HOUR FROM TIMESTAMP_MILLIS(timestamp)) AS hour
         FROM `{PROJECT_ID}.{DATASET_RAW}.{TABLE_RAW}`
         WHERE price_usd IS NOT NULL
+        ORDER BY timestamp ASC
         """
         query_job = client.query(query)
         query_job.result()
@@ -131,11 +134,6 @@ with DAG(
         python_callable=fetch_api_data,
     )
 
-    convert_task = PythonOperator(
-        task_id="convert_to_ndjson",
-        python_callable=convert_to_ndjson,
-    )
-
     upload_task = PythonOperator(
         task_id="upload_to_gcs",
         python_callable=upload_to_gcs,
@@ -152,4 +150,4 @@ with DAG(
     )
 
     # Task dependencies
-    extract_task >>  convert_task >>upload_task >> load_task >> transform_task
+    extract_task >> upload_task >> load_task >> transform_task
