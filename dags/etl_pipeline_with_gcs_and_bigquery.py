@@ -84,7 +84,7 @@ def load_to_bigquery():
                 bigquery.SchemaField("price_usd", "FLOAT"),
             ],
             source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
+            write_disposition=bigquery.WriteDisposition.WRITE_APPEND
         )
         uri = f"gs://{GCS_BUCKET}/{GCS_PATH}"
         load_job = client.load_table_from_uri(uri, table_id, job_config=job_config)
