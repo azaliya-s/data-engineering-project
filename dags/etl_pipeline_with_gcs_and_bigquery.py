@@ -33,7 +33,7 @@ default_args = {
 
 def fetch_api_data():
     """Fetch data from API and save as structured NDJSON file."""
-    response = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1")
+    response = requests.get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30")
     if response.status_code == 200:
         data = response.json()
         # Convert data directly to NDJSON format
