@@ -14,6 +14,7 @@ on:
     branches:
       - main
 env:
+  ASTRO_WORKSPACE_ID: cm4ycz4gs10i301lco47rdyfs
   ASTRO_API_TOKEN: ${{ inputs.apiToken || secrets.ASTRO_API_TOKEN }}
   DEPLOYMENT_ID: ${{ inputs.deploymentId || vars.DEPLOYMENT_ID }}
 
