@@ -14,7 +14,6 @@ on:
     branches:
       - main
 env:
-  ASTRO_WORKSPACE_ID: cm4ycz4gs10i301lco47rdyfs
   ASTRO_API_TOKEN: ${{ inputs.apiToken || secrets.ASTRO_API_TOKEN }}
   DEPLOYMENT_ID: ${{ inputs.deploymentId || vars.DEPLOYMENT_ID }}
 
@@ -42,6 +41,9 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
+      
+    - name: Switch Astro workspace
+      run: astro workspace switch cm4ycz4gs10i301lco47rdyfs
   
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
