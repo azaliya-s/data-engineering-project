@@ -41,9 +41,6 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-      
-    - name: Switch Astro workspace
-      run: astro workspace switch cm4ycz4gs10i301lco47rdyfs
   
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
