@@ -16,6 +16,6 @@ jobs:
         env:
           ASTRONOMER_KEY: ${{ secrets.ASTRO_API_TOKEN }}
         with:
-          workspace: ${{ varss.WORKSPACE_ID }}
+          workspace: ${{ vars.WORKSPACE_ID }}
           deployment-id: ${{ vars.DEPLOYMENT_ID }}
           action: deploy
