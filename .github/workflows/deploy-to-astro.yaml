@@ -16,7 +16,7 @@ on:
 env:
   ASTRO_API_TOKEN: ${{ inputs.apiToken || secrets.ASTRO_API_TOKEN }}
   DEPLOYMENT_ID: ${{ inputs.deploymentId || vars.DEPLOYMENT_ID }}
-  WORKSPACE_ID: ${{ vars.WORKSPACE_ID }}
+
 
 jobs:
   build:
@@ -52,7 +52,9 @@ jobs:
 
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
+      env:
+        ASTRO_WORKSPACE_ID: ${{ env.WORKSPACE_ID }}
       with:
         deployment-id: ${{ env.DEPLOYMENT_ID }}
         token: ${{ env.ASTRO_API_TOKEN }}
-        workspace-id: ${{ vars.WORKSPACE_ID }} 
+        workspace-id: ${{ env.WORKSPACE_ID }} 
