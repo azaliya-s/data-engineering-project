@@ -48,4 +48,4 @@ jobs:
       with:
         deployment-id: ${{ env.DEPLOYMENT_ID }}
         token: ${{ env.ASTRO_API_TOKEN }}
-        workspace-id: ${{ env.WORKSPACE_ID }} 
+        workspace-id: ${{ vars.WORKSPACE_ID }} 
