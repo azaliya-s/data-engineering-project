@@ -1,0 +1,19 @@
+name: Test Astro Deployment (Push Only)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Astro
+        uses: astronomer/deploy-action@v0.4
+        with:
+          token: ${{ secrets.ASTRO_API_TOKEN }}
+          workspace-id: ${{ secrets.WORKSPACE_ID }}
+          deployment-id: ${{ secrets.DEPLOYMENT_ID }}
