@@ -43,28 +43,9 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-    - name: Clean any existing Astro config
+    - name: Switch Workspace
       run: |
-        rm -rf ~/.astro || true
-        rm -rf .astro || true
-    
-    - name: Create new Astro context
-      run: |
-        mkdir -p ~/.astro
-        echo "{
-          \"cloud\": {
-            \"api\": {
-              \"host\": \"https://api.astronomer.io\",
-              \"token\": \"${{ secrets.ASTRO_API_TOKEN }}\"
-            }
-          },
-          \"context\": {
-            \"workspace\": {
-              \"id\": \"${{ vars.WORKSPACE_ID }}\"
-            }
-          }
-        }" > ~/.astro/config.json
-        cat ~/.astro/config.json
+       astro workspace switch "${{ vars.WORKSPACE_ID }}"
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
       env:
