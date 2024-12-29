@@ -42,7 +42,14 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-  
+    - name: Debug Info
+      run: |
+       echo "DEPLOYMENT_ID length: ${#DEPLOYMENT_ID}"
+       echo "WORKSPACE_ID length: ${#WORKSPACE_ID}"
+       echo "API TOKEN length: ${#ASTRO_API_TOKEN}"
+       echo "DEPLOYMENT_ID starts with: ${DEPLOYMENT_ID:0:5}..."
+       echo "WORKSPACE_ID starts with: ${WORKSPACE_ID:0:5}..."
+
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
       with:
