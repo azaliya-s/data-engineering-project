@@ -40,8 +40,8 @@ def fetch_api_data():
         with open(NDJSON_FILE, 'w') as f:
             for timestamp, price in data['prices']:
                 record = {
-                    "timestamp": int(timestamp),  # Ensure timestamp is integer
-                    "price_usd": float(price)    # Ensure price is float
+                    "timestamp": int(timestamp),  
+                    "price_usd": float(price)   
                 }
                 f.write(json.dumps(record) + '\n')
     else:
@@ -60,7 +60,7 @@ def upload_to_gcs():
         client = storage.Client.from_service_account_json(service_account_file)
         bucket = client.get_bucket(GCS_BUCKET)
         blob = bucket.blob(GCS_PATH)
-        blob.upload_from_filename(NDJSON_FILE)  # Upload NDJSON instead of JSON
+        blob.upload_from_filename(NDJSON_FILE)  
         print(f"Uploaded NDJSON data to GCS: {GCS_BUCKET}/{GCS_PATH}")
     finally:
         os.unlink(service_account_file)
