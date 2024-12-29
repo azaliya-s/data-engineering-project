@@ -1,49 +1,105 @@
 Overview
 ========
-
+This repository demonstrates an end-to-end data pipeline using Airflow (deployed on Astronomer), GitHub Actions for CI/CD, and Google Cloud services (GCS & BigQuery). The pipeline fetches bitcoin data from a public API, stores it in Google Cloud Storage, then loads it into BigQuery for analytics. Finally, data is visualized and analyzed using Looker Studio.
 
 
 
 Project Contents
 ================
 
-Your Astro project contains the following files and folders:
+1. Architecture Overview
+2. Key Components
+3. Setup & Installation
+4. Running the Pipeline
+5. CI/CD with GitHub Actions
+6. Looker Studio Dashboard
+7. Contributing
 
-- dags: This folder contains the Python files for your Airflow DAGs. By default, this directory includes one example DAG:
-    - `example_astronauts`: This DAG shows a simple ETL pipeline example that queries the list of astronauts currently in space from the Open Notify API and prints a statement for each astronaut. The DAG uses the TaskFlow API to define tasks in Python, and dynamic task mapping to dynamically print a statement for each astronaut. For more on how this DAG works, see our [Getting started tutorial](https://docs.astronomer.io/learn/get-started-with-airflow). 
-- Dockerfile: This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
-- include: This folder contains any additional files that you want to include as part of your project. It is empty by default.
-- packages.txt: Install OS-level packages needed for your project by adding them to this file. It is empty by default.
-- requirements.txt: Install Python packages needed for your project by adding them to this file. It is empty by default.
-- plugins: Add custom or community plugins for your project to this file. It is empty by default.
-- airflow_settings.yaml: Use this local-only file to specify Airflow Connections, Variables, and Pools instead of entering them in the Airflow UI as you develop DAGs in this project.
-
-Deploy Your Project Locally
+Architecture Overview
 ===========================
 
-1. Start Airflow on your local machine by running 'astro dev start'.
+1. Data Source (API): The pipeline fetches data from CoinGecko API.
+2. Airflow DAG: Hosted on Astronomer, orchestrating data retrieval and loading.
+3. Google Cloud Storage (GCS): Temporary or long-term storage for raw or intermediate data.
+4. BigQuery: Data warehouse where the pipeline loads structured data for queries.
+5. Looker Studio: A dashboard tool for analyzing and visualizing the ingested data.
+   
+(CoinGecko API) --> Airflow (Astronomer) --> GCS --> BigQuery --> Looker Studio
 
-This command will spin up 4 Docker containers on your machine, each for a different Airflow component:
-
-- Postgres: Airflow's Metadata Database
-- Webserver: The Airflow component responsible for rendering the Airflow UI
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
-- Triggerer: The Airflow component responsible for triggering deferred tasks
-
-2. Verify that all 4 Docker containers were created by running 'docker ps'.
-
-Note: Running 'astro dev start' will start your project with the Airflow Webserver exposed at port 8080 and Postgres exposed at port 5432. If you already have either of those ports allocated, you can either stop your existing Docker containers or change the port.
-
-3. Access the Airflow UI for your local Airflow project. To do so, go to http://localhost:8080/ and log in with 'admin' for both your Username and Password.
-
-You should also be able to access your Postgres Database at 'localhost:5432/postgres'.
-
-Deploy Your Project to Astronomer
+Key Components
 =================================
 
-If you have an Astronomer account, pushing code to a Deployment on Astronomer is simple. For deploying instructions, refer to Astronomer documentation: https://docs.astronomer.io/cloud/deploy-code/
+- Astronomer Airflow: Schedules and manages the data ingestion, transformation, and loading.
+- GitHub Actions: Provides CI/CD to test and deploy Airflow DAGs automatically.
+- Google Cloud Storage (GCS): Acts as a staging area for raw or intermediate data files.
+- BigQuery: Houses the final processed data for analysis.
+- Looker Studio: Visualizes data via dashboards and reports.
 
-Contact
-=======
 
-The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support.
+Setup & Installation
+=================================
+
+1. Clone the Repository
+   
+```git clone https://github.com/azaliya-s/data-engineering-project.git```
+
+```cd [repository-name]```
+
+2. Install Python Dependencies (Optional for Local Testing)
+```pip install -r requirements.txt```
+
+4. Astronomer Account & CLI
+Sign up or log in to Astronomer.
+(Optional) Install the Astronomer CLI locally with ```curl -sSL https://install.astronomer.io | sudo bash -s```.
+Make sure you have a deployment set up on Astronomer.
+
+6. Google Cloud Setup
+Create a GCS bucket and a BigQuery dataset.
+Generate a service account key with the necessary permissions (Cloud Storage & BigQuery).
+Add this key to your GitHub Repo Settings → Secrets and variables → Actions (e.g., GCP_CREDENTIALS).
+
+
+Running the Pipeline
+=================================
+
+1. Local (Optional)
+- You can run Airflow locally using the Astronomer CLI (```astro dev start```) if you want to test locally.
+- Access the Airflow webserver at ```http://localhost:8080``` and trigger the DAG manually.
+2. Deploy on Astronomer
+- Commit and push your code to the ```main``` branch (or whatever branch triggers your CI/CD).
+- GitHub Actions will test and deploy your Airflow project to Astronomer automatically (assuming your secrets are configured).
+3. Data Flow
+- The Airflow DAG fetches bitcoin price data from the CoinGecko API.
+- The data is uploaded to Google Cloud Storage.
+- A subsequent task loads the data from GCS into BigQuery.
+- You can then query and visualize it in Looker Studio.
+
+CI/CD with GitHub Actions
+=================================
+
+- The ```.github/workflows/deploy-to-astro.yaml``` file handles automatic builds and deployments:
+  1. Checks out the code.
+  2. Parses or tests the DAGs to ensure no syntax errors.
+  3. Deploys to Astronomer if everything passes.
+- Make sure you have these secrets set in GitHub:
+  - ```ASTRO_API_TOKEN``` (your Astronomer API token for deployment).
+  - ```GCP_CREDENTIALS``` (JSON for your GCP service account).
+  - Any other environment variables your DAG needs (e.g., API keys).
+
+Looker Studio Dashboard
+=================================
+
+- After the data is in BigQuery, you can set up a Looker Studio report:
+  - Connect BigQuery as the data source.
+  - Build custom charts, tables, or metrics to analyze trends and insights.
+  - Share or keep the report private as needed.
+
+Contributing
+=================================
+
+1. Fork this repo.
+2. Create a feature branch for your changes.
+3. Submit a pull request with a clear description of your improvements or fixes.
+
+
+
