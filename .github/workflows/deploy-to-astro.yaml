@@ -51,6 +51,25 @@ jobs:
        echo "DEPLOYMENT_ID starts with: ${DEPLOYMENT_ID:0:5}..."
        echo "WORKSPACE_ID starts with: ${WORKSPACE_ID:0:5}..."
 
+    - name: Initialize Workspace Context
+      run: |
+       mkdir -p ~/.astro
+       cat > ~/.astro/config.json << EOF
+       {
+       "cloud": {
+        "api": {
+          "host": "https://api.astronomer.io",
+          "token": "${{ env.ASTRO_API_TOKEN }}"
+        }
+       },
+       "context": {
+        "workspace": {
+          "id": "${{ env.WORKSPACE_ID }}"
+          }
+        }
+       }
+       EOF
+
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.4
       env:
